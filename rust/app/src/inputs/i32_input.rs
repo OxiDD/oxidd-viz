@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 
 use crate::{
-    impl_default, impl_default_input_comp, impl_inheritable, impl_inherited_input_from, impl_input_from, impl_into_comps, impl_setter, impl_watchable, inputs::{ GetDynWatchableSetter, InheritLabel, Inheritable, InheritedInput, WrapBuilder, i32_input::i32_input_comp_builder::SetWrapper, wrapper::{CompWrapper, IdentityWrapper, ComponentInput}}, new_wasm_interface::{Component, ComponentOption}, util::watchables::{
+    impl_default, impl_default_input_comp, impl_inheritable, impl_inherited_input_from, impl_input_from, impl_into_comps, impl_saveable, impl_setter, impl_watchable, inputs::{ GetDynWatchableSetter, InheritLabel, Inheritable, InheritedInput, WrapBuilder, i32_input::i32_input_comp_builder::SetWrapper, wrapper::{CompWrapper, ComponentInput, IdentityWrapper}}, new_wasm_interface::{Component, ComponentOption}, util::watchables::{
         BoolWatchable, Derived, DynWatchable, DynWatchableSetter, I32Field, I32Watchable, IntoWatchable, Mutator, OptionI32Watchable, Watchable, WatchableSetter, Watching
     }
 };
@@ -29,6 +29,7 @@ impl I32Input {
 }
 impl_watchable!(I32Input, i32);
 impl_setter!(I32Input, i32);
+impl_saveable!(I32Input, i32);
 impl_inheritable!(I32Input);
 impl_input_from!(I32Input, i32);
 impl_default!(I32Input);
@@ -107,6 +108,7 @@ impl I32InputClamped {
 }
 impl_watchable!(I32InputClamped, i32);
 impl_setter!(I32InputClamped, i32);
+impl_saveable!(I32InputClamped, i32);
 impl_inherited_input_from!(I32InputClamped, i32);
 impl_default_input_comp!(i32, I32InputClamped, I32InputComp);
 

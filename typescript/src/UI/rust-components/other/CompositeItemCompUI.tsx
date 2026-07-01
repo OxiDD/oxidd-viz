@@ -6,6 +6,7 @@ import {StackItem} from "@fluentui/react";
 import {ICompUI} from "../_types/ICompUI";
 import {useWatch} from "../../../watchables/react/useWatch";
 import {alignToText} from "./CompositeCompUI";
+import {css} from "@emotion/css";
 
 export const CompositeItemCompUI: NFC<{
     data: CompositeItemComp;
@@ -18,10 +19,14 @@ export const CompositeItemCompUI: NFC<{
     const align = watch(data.perpendicular_align);
     const grow = watch(data.grow_ratio);
     const shrink = watch(data.shrink_ratio);
-    console.log({shrink, grow});
     return (
-        <StackItem align={alignToText(align) as any} grow={grow} shrink={shrink}>
-            <ChildComp data={child} className={className} aria={aria} />
-        </StackItem>
+        // <StackItem align={alignToText(align) as any} grow={grow} shrink={shrink}>
+        //     <ChildComp data={child} className={className} aria={aria} />
+        // </StackItem>
+        <ChildComp
+            data={child}
+            className={`${className} ${css({flexGrow: grow, flexShrink: shrink, alignSelf: alignToText(align)})}`}
+            aria={aria}
+        />
     );
 };

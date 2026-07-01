@@ -5,6 +5,7 @@ mod component;
 mod component_vec;
 mod default;
 mod inheritable;
+mod saveable;
 mod wasm;
 
 use crate::{
@@ -13,6 +14,7 @@ use crate::{
     component_vec::gen_tuple_into_component_vec_watchables_impl,
     default::derive_default_impl,
     inheritable::derive_inheritable_impl,
+    saveable::derive_saveable_impl,
     wasm::wasm_getters_impl,
 };
 
@@ -39,6 +41,11 @@ pub fn gen_tuple_into_component_vec_watchables(data: TokenStream) -> TokenStream
 #[proc_macro_derive(Inheritable)]
 pub fn derive_inheritable(input: TokenStream) -> TokenStream {
     derive_inheritable_impl(input)
+}
+
+#[proc_macro_derive(Saveable)]
+pub fn derive_saveable(input: TokenStream) -> TokenStream {
+    derive_saveable_impl(input)
 }
 
 #[proc_macro_derive(InitDefault, attributes(init))]

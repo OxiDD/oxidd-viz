@@ -2,13 +2,14 @@ use std::rc::Rc;
 
 use app_macros::{wasm_getters, watchable_setters};
 use bon::Builder;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     components::{DynComp, LabelComp},
     inputs::{
         wrapper::{CompWrapper, ComponentInput},
-        DefaultInputComp, StringInput, StringInputComp, WrapBuilder,
+        DefaultInputComp, Saveable, StringInput, StringInputComp, WrapBuilder,
     },
     make_typed_dyn_watchable,
     new_wasm_interface::{Component, ComponentOption},
@@ -163,7 +164,6 @@ impl<F: ComponentInput> Into<DynWatchableSetter<F::Input>> for InheritedInput<F>
 }
 
 // Component input traits
-
 impl<F: ComponentInput> CompWrapper for InheritedInput<F> {
     fn wrap(&self, comp: Component) -> Component {
         InheritedInputComp::new(self.clone(), |_| comp).into()
@@ -182,6 +182,31 @@ where
     F::Comp: WrapBuilder<Self>,
 {
     type Comp = F::Comp;
+}
+#[derive(Serialize, Deserialize)]
+pub struct InheritedData<V> {
+    value: V,
+    inheriting: bool,
+}
+impl<F> Saveable for InheritedInput<F>
+where
+    F: ComponentInput + Saveable,
+    F::Val: Serialize + DeserializeOwned,
+{
+    type Val = InheritedData<F::Val>;
+    fn load_value(&mut self, val: InheritedData<F::Val>) -> DynSignaller {
+        Box::new((
+            self.inheriting.set(val.inheriting),
+            self.local.load_value(val.value),
+        ))
+    }
+
+    fn save_value(&self) -> Self::Val {
+        InheritedData {
+            value: self.local.save_value(),
+            inheriting: *self.inheriting.get(),
+        }
+    }
 }
 
 // Wrapper traits
@@ -276,14 +301,4 @@ impl Into<Component> for InheritedInputComp {
     fn into(self) -> Component {
         Component::new(ComponentOption::InheritedInput(self))
     }
-}
-
-pub fn test() {
-    let p: InheritedInput<StringInput> = Default::default();
-    let c: Component = p.clone().into();
-    let d = StringInputComp::builder(p).build();
-    let k = StringInputComp::builder(StringInput::from("test"));
-    let d = LabelComp::wrapped("Hallo", InheritedInput::default(StringInput::from("hoi")));
-    let l: Component = d.clone().into();
-    let n = StringInputComp::builder(d).build();
 }

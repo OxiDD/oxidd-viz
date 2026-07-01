@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     impl_default, impl_default_input_comp, impl_inheritable, impl_input_from, impl_into_comps,
-    impl_setter, impl_watchable,
+    impl_saveable, impl_setter, impl_watchable,
     inputs::{
         bool_input::bool_input_comp_builder::SetWrapper,
         wrapper::{CompWrapper, ComponentInput},
@@ -40,6 +40,7 @@ impl BoolInput {
 }
 impl_watchable!(BoolInput, bool);
 impl_setter!(BoolInput, bool);
+impl_saveable!(BoolInput, bool);
 impl_inheritable!(BoolInput);
 impl_input_from!(BoolInput, bool);
 impl_default!(BoolInput);

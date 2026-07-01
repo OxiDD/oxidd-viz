@@ -132,7 +132,7 @@ macro_rules! make_typed_field {
     ($StructName:ident, $WatchableStructName:ident, $ValueType:ty) => {
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
-        #[derive(Clone)]
+        #[derive(Clone, serde::Serialize, serde::Deserialize)]
         pub struct $StructName(Field<$ValueType>);
         impl $StructName {
             pub fn new(init: $ValueType) -> Self {

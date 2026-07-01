@@ -2,11 +2,12 @@ use std::rc::Rc;
 
 use app_macros::{builder_into_comp, wasm_getters, watchable_setters};
 use bon::Builder;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use crate::{
     impl_default, impl_default_input_comp, impl_inheritable, impl_input_from, impl_into_comps,
-    impl_setter, impl_watchable,
+    impl_saveable, impl_setter, impl_watchable,
     inputs::{
         binary_input::binary_input_comp_builder::SetWrapper,
         wrapper::{CompWrapper, ComponentInput, IdentityWrapper},
@@ -21,7 +22,7 @@ use crate::{
 };
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FileData {
     data: Vec<u8>,
     name: String,
@@ -61,6 +62,7 @@ impl BinaryInput {
 }
 impl_watchable!(BinaryInput, Option<FileData>);
 impl_setter!(BinaryInput, Option<FileData>);
+impl_saveable!(BinaryInput, Option<FileData>);
 impl_inheritable!(BinaryInput);
 impl_input_from!(BinaryInput, Option<FileData>);
 impl_default!(BinaryInput);

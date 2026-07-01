@@ -6,12 +6,12 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     impl_default, impl_default_input_comp, impl_inheritable, impl_input_from, impl_into_comps,
-    impl_setter, impl_watchable,
+    impl_saveable, impl_setter, impl_watchable,
     inputs::{
         string_input::string_input_comp_builder::SetWrapper,
         wrapper::{CompWrapper, ComponentInput, IdentityWrapper},
         DefaultInputComp, GetDynWatchableSetter, InheritLabel, Inheritable, InheritedInput,
-        WrapBuilder,
+        Saveable, WrapBuilder,
     },
     new_wasm_interface::{Component, ComponentOption},
     util::watchables::{
@@ -37,6 +37,7 @@ impl StringInput {
 }
 impl_watchable!(StringInput, String);
 impl_setter!(StringInput, String);
+impl_saveable!(StringInput, String);
 impl_inheritable!(StringInput);
 impl_input_from!(StringInput, String);
 impl_default!(StringInput);

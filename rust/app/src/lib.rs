@@ -7,7 +7,8 @@ mod types;
 mod util;
 mod wasm_interface;
 
-use app_macros::{Component, Inheritable, InitDefault};
+use app_macros::{Component, Inheritable, InitDefault, Saveable};
+use serde::{Deserialize, Serialize};
 use util::panic_hook::set_panic_hook;
 use wasm_bindgen::prelude::*;
 
@@ -16,8 +17,8 @@ use types::{mtbdd::mtbdd_drawer::MTBDDDiagram, qdd::qdd_drawer::QDDDiagram};
 use crate::{
     components::{
         button_component::ButtonComp, Align, AlignMain, ComponentWithData, CompositeComp,
-        ContainerComp, FillComp, IntoComponentVec, LabelComp, LabelKind, OverlayComp,
-        PanelButtonComp, PanelComp, PromptComp, TooltipComp,
+        CompositeItemComp, ContainerComp, FillComp, IntoComponentVec, LabelComp, LabelKind,
+        OverlayComp, PanelButtonComp, PanelComp, PromptComp, TooltipComp,
     },
     inputs::{
         binary_input::{BinaryInput, BinaryInputComp},
@@ -25,9 +26,9 @@ use crate::{
         f32_input::{F32InputClamped, F32InputComp},
         string_input::{StringInput, StringInputComp},
         variant_input::{VariantInput, VariantInputComp, VariantOptions},
-        ComponentInput, DefaultInputComp, DynWrappedInput, F32Input, F32InputCompBuilder,
-        Inheritable, InheritedInput, U32Input, U32InputClamped, VariantComponentMapping,
-        WrapBuilder,
+        CompWrapper, ComponentInput, DefaultInputComp, DynWrappedInput, F32Input,
+        F32InputCompBuilder, Inheritable, InheritedInput, Saveable, U32Input, U32InputClamped,
+        VariantComponentMapping, WrapBuilder,
     },
     new_wasm_interface::Component,
     util::watchables::{
@@ -91,38 +92,16 @@ pub fn test_panel() -> PanelComp {
         .multiline_min(2);
     // .late_submit(true);
 
-    #[derive(PartialEq, Eq, Clone)]
-    enum Option {
-        V1,
-        V2,
-        V3,
-    }
-    impl VariantOptions for Option {
-        fn get_variants() -> Vec<Self> {
-            vec![Option::V1, Option::V2, Option::V3]
-        }
-    }
-    impl VariantComponentMapping for Option {
-        fn map(&self) -> Component {
-            (match self {
-                Option::V1 => "V1",
-                Option::V2 => "V2",
-                Option::V3 => "V3",
-            })
-            .into()
-        }
-    }
-
-    let variant = VariantInput::new(Option::V1);
+    let variant = VariantInput::new(Variants::V1);
     let variant_comp1 = variant.clone();
     let variant_comp2 = variant
         .clone()
         .comp_builder(|v| {
             ButtonComp::builder()
                 .icon(match v {
-                    Option::V1 => "PageLink",
-                    Option::V2 => "CommentSolid",
-                    Option::V3 => "Installation",
+                    Variants::V1 => "PageLink",
+                    Variants::V2 => "CommentSolid",
+                    Variants::V3 => "Installation",
                 })
                 .text("Some label")
                 .build()
@@ -137,14 +116,14 @@ pub fn test_panel() -> PanelComp {
         .comp_builder(move |v| {
             LabelComp::builder()
                 .label(match v {
-                    Option::V1 => "V1",
-                    Option::V2 => "V2",
-                    Option::V3 => "V3",
+                    Variants::V1 => "V1",
+                    Variants::V2 => "V2",
+                    Variants::V3 => "V3",
                 })
                 .build(match v {
-                    Option::V1 => v1_field.clone(),
-                    Option::V2 => v2_field.clone(),
-                    Option::V3 => v3_field.clone(),
+                    Variants::V1 => v1_field.clone(),
+                    Variants::V2 => v2_field.clone(),
+                    Variants::V3 => v3_field.clone(),
                 })
         })
         .main_align(AlignMain::Stretch)
@@ -197,10 +176,17 @@ pub fn test_panel() -> PanelComp {
             .build(("Hallo prompt", BoolInput::new(false))),
     );
 
+    let (settings, inherited_settings, inherited_inherited_settings, settings_comp) =
+        settings_comp();
     let with_overlay = FillComp::new(ContainerComp::builder().padding(1.0).build(FillComp::new((
         composite,
         prompt,
-        settings_comp(),
+        CompositeComp::builder().horizontal(true).build((
+            settings_comp,
+            settings_field(&settings),
+            settings_field(&inherited_settings),
+            settings_field(&inherited_inherited_settings),
+        )),
         OverlayComp::bottom_right(ButtonComp::builder().icon("AlarmClock").build()),
     ))));
 
@@ -212,7 +198,30 @@ pub fn test_panel() -> PanelComp {
         .build(with_overlay)
 }
 
-#[derive(Inheritable, InitDefault, Component, Clone)]
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
+enum Variants {
+    V1,
+    V2,
+    V3,
+}
+impl VariantOptions for Variants {
+    fn get_variants() -> Vec<Self> {
+        vec![Variants::V1, Variants::V2, Variants::V3]
+    }
+}
+impl VariantComponentMapping for Variants {
+    fn map(&self) -> Component {
+        (match self {
+            Variants::V1 => "V1",
+            Variants::V2 => "V2",
+            Variants::V3 => "V3",
+        })
+        .into()
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Inheritable, InitDefault, Component, Saveable, Clone)]
 #[label(spaced, map=|l, c| LabelComp::builder().label(l).kind(LabelKind::Inline).build(c))]
 #[comp(build=builder.gap(2.0).perpendicular_align(Align::Stretch))]
 struct MySettings {
@@ -230,17 +239,21 @@ struct MySettings {
     #[comp(build=builder.step_size(2.0))]
     other_value: InheritedInput<F32Input>,
 
+    // Number value with initialization
+    #[init(Variants::V2)]
+    variant: InheritedInput<VariantInput<Variants>>,
+
     // Checkbox with custom label styling
     #[label(map=|l, c| LabelComp::builder().label(l).kind(LabelKind::Above).build(c))]
     check: InheritedInput<BoolInput>,
 }
 
-fn settings_comp() -> Component {
+fn settings_comp() -> (MySettings, MySettings, MySettings, Component) {
     let settings = MySettings::default();
     let inherited_settings = settings.inherit("parent");
     let inherited_inherited_settings = inherited_settings.inherit("parent's parent");
 
-    PanelButtonComp::builder()
+    let res = PanelButtonComp::builder()
         .button(ButtonComp::builder().text("Open settings").build())
         .panel(
             PanelComp::builder()
@@ -248,11 +261,72 @@ fn settings_comp() -> Component {
                 .id("settings-panel"),
         )
         .build((
-            settings,
+            settings.clone(),
             "Inherited:",
-            inherited_settings,
+            inherited_settings.clone(),
             "Double inherited:",
-            inherited_inherited_settings,
+            inherited_inherited_settings.clone(),
+        ))
+        .into();
+
+    (
+        settings,
+        inherited_settings,
+        inherited_inherited_settings,
+        res,
+    )
+}
+
+fn settings_field(settings: &MySettings) -> Component {
+    let settings_text = StringInput::from("");
+    let text_field =
+        StringInputComp::builder(LabelComp::wrapped("settings", settings_text.clone()))
+            .multiline(true)
+            .multiline_dynamic(true)
+            .multiline_min(2);
+
+    let settings_read = settings.clone();
+    let mut settings_text_read = settings_text.clone();
+    let read_button = ButtonComp::builder().text("Read").build();
+    let read_button = ComponentWithData::new(
+        read_button.clone(),
+        read_button.on_click(move || {
+            let Some(val) = serde_json::to_string_pretty(&settings_read.save_value()).ok() else {
+                return;
+            };
+            settings_text_read.set(val);
+        }),
+    );
+
+    let mut settings_write = settings.clone();
+    let settings_text_write = settings_text.clone();
+    let write_button = ButtonComp::builder().text("Write").build();
+    let write_button = ComponentWithData::new(
+        write_button.clone(),
+        write_button.on_click(move || {
+            let text = settings_text_write.get();
+            let Some(val) = serde_json::from_str(&text).ok() else {
+                return;
+            };
+            settings_write.load_value(val);
+        }),
+    );
+
+    CompositeComp::builder()
+        .perpendicular_align(Align::Stretch)
+        .build((
+            text_field,
+            CompositeComp::builder()
+                .horizontal(true)
+                .main_align(AlignMain::Stretch)
+                .build((
+                    CompositeItemComp::builder()
+                        .grow_ratio(1.0)
+                        .build(read_button),
+                    CompositeItemComp::builder()
+                        .grow_ratio(1.0)
+                        .build(write_button),
+                )),
         ))
         .into()
 }

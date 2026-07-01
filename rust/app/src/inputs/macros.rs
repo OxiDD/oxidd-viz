@@ -89,3 +89,20 @@ macro_rules! impl_default {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_saveable {
+    ($StructInput:ident,  $ValueType:ty) => {
+        impl crate::inputs::Saveable for $StructInput {
+            type Val = $ValueType;
+            fn load_value(&mut self, val: $ValueType) -> crate::util::watchables::DynSignaller {
+                self.setter().set(val)
+            }
+
+            fn save_value(&self) -> Self::Val {
+                let val: &Self::Val = &self.watchable().get();
+                val.clone()
+            }
+        }
+    };
+}

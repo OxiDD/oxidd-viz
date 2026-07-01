@@ -29,6 +29,8 @@ byteorder = "1.4"
 seeded-random = "0.6.0"
 bon = { version = "3.9.0", features = ["experimental-overwritable"] }
 app-macros = { workspace = true }
+serde = "1.0.228"
+serde_json = "1.0.150"
 
 
 # The `console_error_panic_hook` crate provides better debugging of panics by

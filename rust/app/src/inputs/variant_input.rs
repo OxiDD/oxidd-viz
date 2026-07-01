@@ -3,6 +3,7 @@ use std::{cell::RefCell, ops::Index, rc::Rc};
 use app_macros::{builder_into_comp, wasm_getters, watchable_setters};
 use bon::Builder;
 use itertools::Itertools;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
@@ -15,7 +16,7 @@ use crate::{
         variant_input::variant_input_comp_builder::{SetOptions, SetWrapper},
         wrapper::{CompWrapper, ComponentInput, IdentityWrapper},
         ComponentInputData, DefaultInputComp, GetDynWatchableSetter, InheritLabel, Inheritable,
-        InheritedInput, WrapBuilder,
+        InheritedInput, Saveable, WrapBuilder,
     },
     new_wasm_interface::{Component, ComponentOption},
     util::watchables::{
@@ -183,6 +184,19 @@ where
         )
     }
 }
+impl<V> Saveable for VariantInput<V>
+where
+    V: Sized + Clone + Eq + 'static + Serialize + DeserializeOwned,
+{
+    type Val = V;
+    fn load_value(&mut self, val: V) -> DynSignaller {
+        self.set(val)
+    }
+
+    fn save_value(&self) -> Self::Val {
+        (&*self.get()).clone()
+    }
+}
 
 // Conversion traits + default
 impl<V> From<V> for VariantInput<V>
@@ -345,7 +359,6 @@ where
     }
 }
 
-// Inheritable impl
 impl<V> Inheritable for InheritedInput<VariantInputComponents<V>>
 where
     V: Sized + Clone + Eq + 'static,
@@ -360,6 +373,19 @@ where
             input.map.clone(),
         );
         InheritedInput::new(copy, DynWatchable::new(self.clone()), self_name)
+    }
+}
+impl<V> Saveable for VariantInputComponents<V>
+where
+    V: Sized + Clone + Eq + 'static + Serialize + DeserializeOwned,
+{
+    type Val = V;
+    fn load_value(&mut self, val: V) -> DynSignaller {
+        self.input.set(val)
+    }
+
+    fn save_value(&self) -> Self::Val {
+        (&*self.input.get()).clone()
     }
 }
 
@@ -492,5 +518,18 @@ impl Into<Component> for VariantInputComp {
         let wrapper = self.wrapper.clone();
         let comp = Component::new(ComponentOption::VariantInput(self));
         wrapper.wrap(comp)
+    }
+}
+
+// Add inherited input default comp support
+impl<V, VI> ComponentInputData for InheritedInput<VI>
+where
+    V: Sized + Clone + Eq + 'static,
+    VI: ComponentInputData<Input = V, InputData = (DynWatchable<Vec<V>>, ComponentVecWatchable)>,
+{
+    type InputData = (DynWatchable<Vec<V>>, ComponentVecWatchable);
+
+    fn input_data(&self) -> Self::InputData {
+        self.child_input().input_data()
     }
 }

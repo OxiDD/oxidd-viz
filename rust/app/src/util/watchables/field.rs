@@ -1,5 +1,6 @@
 use std::{any::Any, cell::RefCell, rc::Rc};
 
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::util::watchables::{
@@ -112,6 +113,25 @@ impl<X: 'static> WatchableSetter for Field<X> {
     }
 }
 
+// Serialization
+impl<X: Serialize> Serialize for Field<X> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.get().serialize(serializer)
+    }
+}
+impl<'de, X: Deserialize<'de> + 'static> Deserialize<'de> for Field<X> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let x = X::deserialize(deserializer)?;
+        Ok(Field::new(x))
+    }
+}
+
 /// Disallow writing to the field
 pub struct ReadonlyField<X>(Field<X>);
 impl<X> Clone for ReadonlyField<X> {
@@ -140,6 +160,14 @@ impl<X> IntoWatchable<X> for ReadonlyField<X> {
     type Output = ReadonlyField<X>;
     fn into_watchable(self) -> Self::Output {
         self
+    }
+}
+impl<X: Serialize> Serialize for ReadonlyField<X> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
     }
 }
 
@@ -195,5 +223,22 @@ impl<X> IntoWatchable<X> for ControlledField<X> {
     type Output = ControlledField<X>;
     fn into_watchable(self) -> Self::Output {
         self
+    }
+}
+impl<X: Serialize> Serialize for ControlledField<X> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+impl<'de, X: Deserialize<'de> + 'static> Deserialize<'de> for ControlledField<X> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let field = Field::<X>::deserialize(deserializer)?;
+        Ok(ControlledField(field))
     }
 }

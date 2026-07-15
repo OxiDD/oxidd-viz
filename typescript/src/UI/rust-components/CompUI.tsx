@@ -22,6 +22,7 @@ import {VariantInputCompUI} from "./inputs/VariantInputCompUI";
 import {BoolInputCompUI} from "./inputs/BoolInputCompUI";
 import {BinaryInputCompUI} from "./inputs/BinaryInputCompUI";
 import {InheritedInputCompUI} from "./inputs/InheritedInputCompUI";
+import {CanvasCompUI} from "./other/CanvasCompUI";
 
 export const CompUI: ICompUI = ({data: d, className, aria}) => {
     const p = {className, aria, ChildComp: CompUI};
@@ -46,6 +47,7 @@ export const CompUI: ICompUI = ({data: d, className, aria}) => {
         when(d.as_binary_input(), r => <BinaryInputCompUI data={r} {...p} />) ??
         when(d.as_inherited_input(), r => <InheritedInputCompUI data={r} {...p} />) ??
         when(d.as_modal(), r => <ModalCompUI data={r} {...p} />) ??
+        when(d.as_canvas(), r => <CanvasCompUI data={r} {...p} />) ??
         when(d.as_panel(), r => <></>) ??
         componentNotFound
     );

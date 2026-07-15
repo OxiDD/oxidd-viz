@@ -29,7 +29,7 @@ export const InheritedInputCompUI: NFC<{
                 delay={TooltipDelay.long}
                 content={inheriting ? label.inherited_label : label.local_label}>
                 <IconButton
-                    disabled={inheriting}
+                    // disabled={inheriting}
                     onClick={onClick}
                     style={{color: "inherit"}}
                     iconProps={{iconName: inheriting ? "Link" : "LocationDot"}}

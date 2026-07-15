@@ -12,7 +12,7 @@ use crate::{
         overlay_component::OverlayComp,
         panel_component::PanelComp,
         text_component::TextComp,
-        PanelHandleComp, TooltipComp,
+        CanvasComp, PanelHandleComp, TooltipComp,
     },
     configuration::configuration_object::AbstractConfigurationObject,
     inputs::{
@@ -78,6 +78,7 @@ pub enum ComponentOption {
     Overlay(OverlayComp),
     Tooltip(TooltipComp),
     PanelHandle(PanelHandleComp),
+    Canvas(CanvasComp),
 }
 
 impl_as_variant!(as_bool_input, BoolInput, BoolInputComp);
@@ -101,3 +102,4 @@ impl_as_variant!(as_dyn, Dyn, DynComp);
 impl_as_variant!(as_overlay, Overlay, OverlayComp);
 impl_as_variant!(as_tooltip, Tooltip, TooltipComp);
 impl_as_variant!(as_panel_handle, PanelHandle, PanelHandleComp);
+impl_as_variant!(as_canvas, Canvas, CanvasComp);

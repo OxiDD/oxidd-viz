@@ -32,7 +32,7 @@ export const CompositeCompUI: NFC<{
     return (
         <Stack
             tokens={{childrenGap: multiplySize(childGap, theme.spacing.s1)}}
-            className={className}
+            className={`${css({position: "relative"})} ${className}`}
             aria-describedby={aria?.descriptionID}
             aria-labelledby={aria?.labelID}
             horizontal={isHorizontal}

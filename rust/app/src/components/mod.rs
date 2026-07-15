@@ -1,5 +1,6 @@
 pub mod assemblies;
 pub mod button_component;
+pub mod canvas_component;
 pub mod composite_component;
 pub mod container_component;
 pub mod dyn_component;
@@ -14,6 +15,7 @@ pub mod tooltip_component;
 
 pub use assemblies::*;
 pub use button_component::*;
+pub use canvas_component::*;
 pub use composite_component::*;
 pub use container_component::*;
 pub use dyn_component::*;

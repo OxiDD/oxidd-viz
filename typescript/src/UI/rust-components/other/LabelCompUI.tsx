@@ -21,7 +21,6 @@ export const LabelCompUI: NFC<{
     const child = watch(data.input);
     const text = watch(data.label);
     const kind = watch(data.kind);
-    console.log(kind, LabelKind.Above);
 
     const theme = useTheme();
 

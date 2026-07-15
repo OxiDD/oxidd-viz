@@ -43,14 +43,18 @@ export const ModalCompUI: NFC<{
     };
 
     return (
-        <Modal
-            isOpen={shown}
-            className={className}
-            onDismiss={clickOutside}
-            containerClassName={contentStyles.container}>
-            <div className={contentStyles.body}>
-                <ChildComp data={content} aria={aria} />
-            </div>
-        </Modal>
+        // Non-displayed div to get rid of the ghost element that messes up layout in flex-boxes
+        // The actual modal will still render using a portal
+        <div style={{display: "none"}}>
+            <Modal
+                isOpen={shown}
+                className={className}
+                onDismiss={clickOutside}
+                containerClassName={contentStyles.container}>
+                <div className={contentStyles.body}>
+                    <ChildComp data={content} aria={aria} />
+                </div>
+            </Modal>
+        </div>
     );
 };

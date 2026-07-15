@@ -128,35 +128,48 @@ macro_rules! make_typed_dyn_watchable {
 }
 
 #[macro_export]
-macro_rules! make_typed_field {
-    ($StructName:ident, $WatchableStructName:ident, $ValueType:ty) => {
-        #[allow(non_camel_case_types)]
-        #[wasm_bindgen]
+macro_rules! typed_field_derive {
+    (true, { $($body:item)* }) => {
         #[derive(Clone, serde::Serialize, serde::Deserialize)]
-        pub struct $StructName(Field<$ValueType>);
-        impl $StructName {
-            pub fn new(init: $ValueType) -> Self {
-                Self(Field::new(init))
+        $($body)*
+    };
+    (false, { $($body:item)* }) => {
+        #[derive(Clone)]
+        $($body)*
+    };
+}
+
+#[macro_export]
+macro_rules! make_typed_field {
+    ($StructName:ident, $WatchableStructName:ident, $ValueType:ty, $Serialize:tt) => {
+        crate::typed_field_derive!($Serialize, {
+            #[allow(non_camel_case_types)]
+            #[wasm_bindgen]
+            pub struct $StructName(Field<$ValueType>);
+            impl $StructName {
+                pub fn new(init: $ValueType) -> Self {
+                    Self(Field::new(init))
+                }
+                pub fn from<V: Into<$ValueType>>(init: V) -> Self {
+                    Self::new(init.into())
+                }
+                fn watchable(&self) -> &Field<$ValueType> {
+                    &self.0
+                }
+                fn setter(&mut self) -> &mut Field<$ValueType> {
+                    &mut self.0
+                }
             }
-            pub fn from<V: Into<$ValueType>>(init: V) -> Self {
-                Self::new(init.into())
+            crate::impl_watchable!($StructName, $ValueType);
+            crate::impl_setter!($StructName, $ValueType);
+            #[wasm_bindgen]
+            impl $StructName {
+                /// Creates a readonly reference to this field data
+                pub fn read(&self) -> $WatchableStructName {
+                    $WatchableStructName::new(self.0.read())
+                }
             }
-            fn watchable(&self) -> &Field<$ValueType> {
-                &self.0
-            }
-            fn setter(&mut self) -> &mut Field<$ValueType> {
-                &mut self.0
-            }
-        }
-        crate::impl_watchable!($StructName, $ValueType);
-        crate::impl_setter!($StructName, $ValueType);
-        #[wasm_bindgen]
-        impl $StructName {
-            /// Creates a readonly reference to this field data
-            pub fn read(&self) -> $WatchableStructName {
-                $WatchableStructName::new(self.0.read())
-            }
-        }
+        });
     };
 }
 
@@ -270,9 +283,14 @@ make_typed_dyn_watchable!(OptionI32Watchable, Option<i32>);
 make_typed_dyn_watchable!(F32Watchable, f32);
 make_typed_dyn_watchable!(OptionF32Watchable, Option<f32>);
 
-make_typed_field!(StringField, StringWatchable, String);
-make_typed_field!(OptionStringField, OptionStringWatchable, Option<String>);
-make_typed_field!(BoolField, BoolWatchable, bool);
-make_typed_field!(U32Field, U32Watchable, u32);
-make_typed_field!(I32Field, I32Watchable, i32);
-make_typed_field!(F32Field, F32Watchable, f32);
+make_typed_field!(StringField, StringWatchable, String, true);
+make_typed_field!(
+    OptionStringField,
+    OptionStringWatchable,
+    Option<String>,
+    true
+);
+make_typed_field!(BoolField, BoolWatchable, bool, true);
+make_typed_field!(U32Field, U32Watchable, u32, true);
+make_typed_field!(I32Field, I32Watchable, i32, true);
+make_typed_field!(F32Field, F32Watchable, f32, true);

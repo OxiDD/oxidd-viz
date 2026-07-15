@@ -29,6 +29,50 @@ impl<W: Watchable, T: Tracker<W>> Watcher<W> for T {
     }
 }
 
+// Observer helpers
+pub trait Listen<V> {
+    /// Listens to updates and calls the listener with the latest value.
+    /// Returns the observer that performs the observation. Once the observer is dropped, no more observations will happen
+    ///
+    /// Note that observing without performing `.get()` may result in no state changes occurring (see the spec)
+    #[must_use = "When the observer is dropped, observation automatically stops"]
+    fn listen(&self, listener: impl Fn(Rc<V>) -> () + 'static) -> Observer;
+
+    /// Listens to updates and calls the listener with the latest value.
+    /// Returns the observer that performs the observation. Once the observer is dropped, no more observations will happen
+    ///
+    /// Note that observing without performing `.get()` may result in no state changes occurring (see the spec)
+    #[must_use = "When the observer is dropped, observation automatically stops"]
+    fn listen_mut(&self, listener: impl FnMut(Rc<V>) -> () + 'static) -> Observer;
+}
+impl<W: Watchable + Clone + 'static> Listen<W::Output> for W {
+    fn listen(&self, listener: impl Fn(Rc<W::Output>) -> () + 'static) -> Observer {
+        let watchable = self.clone();
+        self.observe(Box::new(move || listener(watchable.get())))
+    }
+
+    fn listen_mut(&self, mut listener: impl FnMut(Rc<W::Output>) -> () + 'static) -> Observer {
+        let watchable = self.clone();
+        self.observe(Box::new(RefCell::new(move || listener(watchable.get()))))
+    }
+}
+
+impl<D: Fn() -> ()> Listener for D {
+    fn state_changed(&self, state: DataState) {
+        if state == DataState::UpToDate {
+            (self)();
+        }
+    }
+}
+
+impl<D: FnMut() -> ()> Listener for RefCell<D> {
+    fn state_changed(&self, state: DataState) {
+        if state == DataState::UpToDate {
+            (self.borrow_mut())();
+        }
+    }
+}
+
 // Watchable modifiers
 pub trait WatchableUtils<X> {
     fn map<Y: 'static, F: Fn(Rc<X>) -> Y + 'static>(self, map: F) -> Derived<Y>;

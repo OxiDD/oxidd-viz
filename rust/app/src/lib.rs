@@ -8,17 +8,19 @@ mod util;
 mod wasm_interface;
 
 use app_macros::{Component, Inheritable, InitDefault, Saveable};
+use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use util::panic_hook::set_panic_hook;
 use wasm_bindgen::prelude::*;
 
 use types::{mtbdd::mtbdd_drawer::MTBDDDiagram, qdd::qdd_drawer::QDDDiagram};
+use web_sys::HtmlCanvasElement;
 
 use crate::{
     components::{
-        button_component::ButtonComp, Align, AlignMain, ComponentWithData, CompositeComp,
-        CompositeItemComp, ContainerComp, FillComp, IntoComponentVec, LabelComp, LabelKind,
-        OverlayComp, PanelButtonComp, PanelComp, PromptComp, TooltipComp,
+        button_component::ButtonComp, Align, AlignMain, CanvasComp, ComponentWithData,
+        CompositeComp, CompositeItemComp, ContainerComp, FillComp, IntoComponentVec, LabelComp,
+        LabelKind, OverlayComp, PanelButtonComp, PanelComp, PromptComp, TooltipComp,
     },
     inputs::{
         binary_input::{BinaryInput, BinaryInputComp},
@@ -31,9 +33,12 @@ use crate::{
         VariantComponentMapping, WrapBuilder,
     },
     new_wasm_interface::Component,
-    util::watchables::{
-        CloneableWatchableUtils, DynWatchableSetter, F32Field, Field, StringField, WatchableSetter,
-        WatchableUtils,
+    util::{
+        logging::console,
+        watchables::{
+            CloneableWatchableUtils, DynWatchableSetter, F32Field, Field, Listen, Observer,
+            StringField, WatchableSetter, WatchableState, WatchableUtils,
+        },
     },
     wasm_interface::DiagramBox,
 };
@@ -178,6 +183,7 @@ pub fn test_panel() -> PanelComp {
 
     let (settings, inherited_settings, inherited_inherited_settings, settings_comp) =
         settings_comp();
+
     let with_overlay = FillComp::new(ContainerComp::builder().padding(1.0).build(FillComp::new((
         composite,
         prompt,
@@ -188,6 +194,7 @@ pub fn test_panel() -> PanelComp {
             settings_field(&inherited_inherited_settings),
         )),
         OverlayComp::bottom_right(ButtonComp::builder().icon("AlarmClock").build()),
+        canvas_test(),
     ))));
 
     let panel_name = StringField::from("test panel");
@@ -329,4 +336,25 @@ fn settings_field(settings: &MySettings) -> Component {
                 )),
         ))
         .into()
+}
+
+fn canvas_test() -> Component {
+    let canvas = CanvasComp::new();
+    let canvas_observer = canvas.instances().listen(|instances| {
+        for instance in &*instances {
+            draw(instance);
+        }
+    });
+    ComponentWithData::new(canvas, canvas_observer).into()
+}
+fn draw(canvas: &HtmlCanvasElement) -> Option<()> {
+    let context = canvas.get_context("2d").ok()??;
+    canvas.set_attribute("style", "flex-grow:1;").ok()?;
+    let draw_background = Function::new_with_args(
+        "ctx",
+        "ctx.fillStyle = '#f4efe6'; ctx.fillRect(ctx.canvas.width/4, ctx.canvas.height/4, ctx.canvas.width/2, ctx.canvas.height/2);",
+    );
+    draw_background.call1(&JsValue::NULL, &context).ok()?;
+
+    Some(())
 }

@@ -18,20 +18,20 @@ export const OverlayCompUI: NFC<{
     const y = watch(data.y);
 
     return (
-        <div
-            className={className}
-            style={{position: "relative", width: "100%", height: "100%"}}>
-            <ChildComp
-                data={content}
-                aria={aria}
-                className={`${css({
-                    position: "absolute",
-                    left: `${x * 100}%`,
-                    top: `${y * 100}%`,
-                    transform: `translate(${-x * 100}%, ${-y * 100}%)`,
-                })} ${className}`}
-            />
-        </div>
+        // <div
+        //     className={className}
+        //     style={{position: "relative", width: "100%", height: "100%"}}>
+        <ChildComp
+            data={content}
+            aria={aria}
+            className={`${css({
+                position: "absolute",
+                left: `${x * 100}%`,
+                top: `${y * 100}%`,
+                transform: `translate(${-x * 100}%, ${-y * 100}%)`,
+            })} ${className}`}
+        />
+        // </div>
     );
 };
 

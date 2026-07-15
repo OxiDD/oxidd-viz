@@ -15,6 +15,12 @@ impl<X> DynWatchable<X> {
     pub fn new<W: Watchable<Output = X> + 'static>(watchable: W) -> Self {
         DynWatchable(Rc::new(watchable))
     }
+    pub fn from<W: IntoWatchable<X> + 'static>(val: W) -> Self
+    where
+        W::Output: 'static,
+    {
+        Self::new(val.into_watchable())
+    }
 }
 impl<X> Watchable for DynWatchable<X> {
     type Output = X;

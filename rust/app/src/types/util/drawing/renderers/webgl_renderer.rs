@@ -152,6 +152,14 @@ where
         //     self.layer_renderer
         //         .set_screen_height(&self.webgl_context, height);
         // }
+        console::log!(
+            "{} {} {} {} {}",
+            transform.position.x,
+            transform.position.y,
+            transform.width,
+            transform.height,
+            transform.scale
+        );
 
         self.screen_texture
             .set_size(transform.width as usize, height);

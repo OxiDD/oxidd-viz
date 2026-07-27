@@ -331,6 +331,14 @@ impl TextRenderer {
         if self.screen_height == 0. {
             return;
         }
+        for text in texts {
+            console::log!(
+                "Text: {}, {}, {}",
+                text.text,
+                text.position.new.x,
+                text.position.new.y
+            );
+        }
 
         // Obtain the character glyphs and position data, and ensure that these glyphs are on the atlas
         let char_data = texts

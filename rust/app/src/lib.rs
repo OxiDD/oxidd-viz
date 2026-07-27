@@ -7,9 +7,12 @@ mod types;
 mod util;
 mod wasm_interface;
 
+use std::rc::Rc;
+
 use app_macros::{Component, Inheritable, InitDefault, Saveable};
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
+use swash::zeno::Transform;
 use util::panic_hook::set_panic_hook;
 use wasm_bindgen::prelude::*;
 
@@ -33,11 +36,24 @@ use crate::{
         VariantComponentMapping, WrapBuilder,
     },
     new_wasm_interface::Component,
+    types::util::drawing::renderers::{
+        util::Font::Font,
+        webgl::{
+            text::text_renderer::{Text, TextRenderer, TextRendererSettings},
+            util::render_texture::{RenderTarget, ScreenTexture},
+            webgl_canvas_controller::WebglCanvasController,
+        },
+    },
     util::{
+        color::Color,
         logging::console,
+        point::Point,
+        transformation::Transformation,
+        transition::Transition,
         watchables::{
-            CloneableWatchableUtils, DynWatchableSetter, F32Field, Field, Listen, Observer,
-            StringField, WatchableSetter, WatchableState, WatchableUtils,
+            CloneableWatchableUtils, Derived, DynWatchableSetter, F32Field, Field, Listen,
+            Observer, StringField, Watchable, WatchableSetter, WatchableState, WatchableUtils,
+            Watching,
         },
     },
     wasm_interface::DiagramBox,
@@ -340,21 +356,89 @@ fn settings_field(settings: &MySettings) -> Component {
 
 fn canvas_test() -> Component {
     let canvas = CanvasComp::new();
-    let canvas_observer = canvas.instances().listen(|instances| {
-        for instance in &*instances {
-            draw(instance);
-        }
-    });
-    ComponentWithData::new(canvas, canvas_observer).into()
-}
-fn draw(canvas: &HtmlCanvasElement) -> Option<()> {
-    let context = canvas.get_context("2d").ok()??;
-    canvas.set_attribute("style", "flex-grow:1;").ok()?;
-    let draw_background = Function::new_with_args(
-        "ctx",
-        "ctx.fillStyle = '#f4efe6'; ctx.fillRect(ctx.canvas.width/4, ctx.canvas.height/4, ctx.canvas.width/2, ctx.canvas.height/2);",
-    );
-    draw_background.call1(&JsValue::NULL, &context).ok()?;
+    let instances = canvas.instances();
+    let renderers = Derived::new(move |t| {
+        instances
+            .watch(t)
+            .iter()
+            .map(
+                |instance| -> Result<WebglCanvasController<(ScreenTexture, TextRenderer)>, JsValue> {
+                    let controller = WebglCanvasController::builder()
+                        .render(|time, (texture,  text_renderer ): &mut (ScreenTexture, TextRenderer),  webgl, rect| {
+                            texture.set_size(rect.width, rect.height);
+                            texture.clear(webgl);
+                            text_renderer.set_transform_and_screen_height(
+                                webgl,
+                                &Transformation {
+                                    width: rect.width as f32,
+                                    height: rect.height as f32,
+                                    angle: 0.0,
+                                    position: Point { x: 0.0, y: 0.0 },
+                                    scale: 30.0,
+                                }
+                                .get_matrix(),
+                                rect.height,
+                            );
+                            text_renderer.render(webgl, time as u32);
+                        })
+                        .build(instance.clone(), |webgl, rect| {
+                            let font = Rc::new(Font::new(
+                                include_bytes!("../resources/Roboto-Bold.ttf").to_vec(),
+                                1.0,
+                            ));
+                            let font_settings = TextRendererSettings::new()
+                                .resolution(2.0)
+                                .sample_distance(35.)
+                                .scale_factor_group_size(3.0)
+                                .scale_cache_size(10)
+                                .max_scale(1.5)
+                                .color(Color(1.0, 1.0, 0.0));
+                            let mut text_renderer =
+                                TextRenderer::new(webgl, font, font_settings, rect.height);
+                            text_renderer.set_texts(
+                                webgl,
+                                &Vec::from([Text {
+                                    text: "hoi I should put some more text here so it's definitely in the screen".into(),
+                                    position: Transition::plain(Point { x: 0.0, y: 0.0 }),
+                                    exists: Transition::plain(1.0),
+                                }]),
+                            );
 
-    Some(())
+                        (
+                            ScreenTexture::new(
+                                rect.width as usize,
+                                rect.height as usize,
+                        (0.5, 0.5, 0.5, 1.0),
+                            ),
+                            text_renderer
+                        )
+                        })?;
+                    controller.render(0);
+                    Ok(controller)
+                },
+            )
+            .collect::<Vec<_>>()
+    });
+    let _ = renderers.get();
+    let canvas_observer = renderers.listen(|_instances| {
+        // Simply compute the renderers
+    });
+    let el = ComponentWithData::new(canvas, canvas_observer);
+    // CompositeItemComp::builder()
+    //     .grow_ratio(1.0)
+    //     .shrink_ratio(1.0)
+    //     .build(el)
+    //     .into()
+    el.into()
 }
+// fn draw(canvas: &HtmlCanvasElement) -> Option<()> {
+//     let context = canvas.get_context("2d").ok()??;
+//     canvas.set_attribute("style", "flex-grow:1;").ok()?;
+//     let draw_background = Function::new_with_args(
+//         "ctx",
+//         "ctx.fillStyle = '#f4efe6'; ctx.fillRect(ctx.canvas.width/4, ctx.canvas.height/4, ctx.canvas.width/2, ctx.canvas.height/2);",
+//     );
+//     draw_background.call1(&JsValue::NULL, &context).ok()?;
+
+//     Some(())
+// }

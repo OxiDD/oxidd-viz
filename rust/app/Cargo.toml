@@ -95,6 +95,9 @@ features = [
     "WebGlBuffer",
     "WebGlUniformLocation",
     "WebGlTexture",
+    "ResizeObserver",
+    "ResizeObserverEntry",
+    "DomRect",
 ]
 
 

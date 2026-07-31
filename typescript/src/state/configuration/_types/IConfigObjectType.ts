@@ -7,6 +7,7 @@ import {IntConfig} from "../types/IntConfig";
 import {LabelConfig} from "../types/LabelConfig";
 import {LocationConfig} from "../types/LocationConfig";
 import {PanelConfig} from "../types/PanelConfig";
+import {TextConfig} from "../types/TextConfig";
 import {TextOutputConfig} from "../types/TextOutputConfig";
 
 export type IConfigObjectType =
@@ -17,6 +18,7 @@ export type IConfigObjectType =
     | CompositeConfig
     | ButtonConfig
     | TextOutputConfig
+    | TextConfig
     | PanelConfig
     | LocationConfig
     | ContainerConfig;

@@ -130,20 +130,20 @@ use super::super::util::storage::state_storage::Serializable;
 use super::super::util::storage::state_storage::StateStorage;
 
 // The QDD diagram stripped down to increase performance
-pub struct QDDDiagram<MR: ManagerRef>
+pub struct BDDMinDiagram<MR: ManagerRef>
 where
     for<'id> <<MR as oxidd::ManagerRef>::Manager<'id> as Manager>::InnerNode: HasLevel,
 {
     manager_ref: MR,
 }
-impl QDDDiagram<DummyBDDManagerRef> {
-    pub fn new() -> QDDDiagram<DummyBDDManagerRef> {
+impl BDDMinDiagram<DummyBDDManagerRef> {
+    pub fn new() -> BDDMinDiagram<DummyBDDManagerRef> {
         let manager_ref = DummyBDDManagerRef::from(&DummyBDDManager::new());
-        QDDDiagram { manager_ref }
+        BDDMinDiagram { manager_ref }
     }
 }
 
-impl Diagram for QDDDiagram<DummyBDDManagerRef> {
+impl Diagram for BDDMinDiagram<DummyBDDManagerRef> {
     fn create_section_from_dddmp(&mut self, dddmp: String) -> Option<Box<dyn DiagramSection>> {
         let (roots, levels, is_bdd) = DummyBDDFunction::from_dddmp(&mut self.manager_ref, &dddmp);
         Some(Box::new(BDDMinDiagramSection::new(roots, is_bdd, levels)))
@@ -381,10 +381,8 @@ impl LatexLayerStyle for LayerData {
 type GroupedGraph =
     GroupPresenceAdjuster<GroupLabelAdjuster<NodeData, LayerData, GroupManager<Graph>>>;
 type Graph = RCGraph<TerminalLevelAdjuster<PresenceAdjuster>>;
-type PresenceAdjuster = RCGraph<NodePresenceAdjuster<CofactorAdjuster>>;
-
-type CofactorAdjuster =
-    RCGraph<ReachabilityAdjuster<PointerNodeAdjuster<TerminalLevelAdjuster<BaseGraph>>>>;
+type PresenceAdjuster =
+    RCGraph<NodePresenceAdjuster<PointerNodeAdjuster<TerminalLevelAdjuster<BaseGraph>>>>;
 type BaseGraph = OxiddGraphStructure<(), DummyBDDFunction, String>;
 type Layout = TransitionLayout<ToggleLayout<Layout1, ToggleLayoutUnit<Layout2>>>;
 type Layout1 = LayeredLayout<
@@ -436,7 +434,6 @@ pub struct QDDDiagramDrawer {
                             )>,
                         >,
                     >,
-                    ContainerConfig<LabelConfig<TextConfig>>,
                     ContainerConfig<
                         LabelConfig<
                             CompositeConfig<(
@@ -549,9 +546,13 @@ impl QDDDiagramDrawer {
             true,
             "".to_string(),
         );
-        let reachability_adjuster = RCGraph::new(ReachabilityAdjuster::new(pointer_adjuster)); // Scrap
+        // let child_edge_adjuster =
+        //     RCGraph::new(ChildEdgeAdjuster::new(pointer_adjuster, move_shared_edge)); // Scrap
+        // let edge_to_adjuster = RCGraph::new(EdgeToAdjuster::new(child_edge_adjuster.clone())); // Scrap
+        // let reachability_adjuster =
+        //     RCGraph::new(ReachabilityAdjuster::new(edge_to_adjuster.clone())); // Scrap
         let presence_adjuster: PresenceAdjuster =
-            RCGraph::new(NodePresenceAdjuster::new(reachability_adjuster.clone()));
+            RCGraph::new(NodePresenceAdjuster::new(pointer_adjuster));
         let modified_graph: Graph =
             RCGraph::new(TerminalLevelAdjuster::new(presence_adjuster.clone()));
         let roots = modified_graph.get_roots();
@@ -565,14 +566,10 @@ impl QDDDiagramDrawer {
                     (
                         Some(&PresenceLabel {
                             original_label:
-                                ReachabilityLabel {
-                                    original_label:
-                                        PointerLabel::Node(NodeLabel {
-                                            pointers: _,
-                                            kind: NodeType::Terminal(ref terminal),
-                                        }),
-                                    reachable: _,
-                                },
+                                PointerLabel::Node(NodeLabel {
+                                    pointers: _,
+                                    kind: NodeType::Terminal(ref terminal),
+                                }),
                             original_id: _,
                         }),
                         None,
@@ -585,11 +582,7 @@ impl QDDDiagramDrawer {
                     }
                     (
                         Some(&PresenceLabel {
-                            original_label:
-                                ReachabilityLabel {
-                                    original_label: PointerLabel::Pointer(_),
-                                    reachable: _,
-                                },
+                            original_label: PointerLabel::Pointer(_),
                             original_id: _,
                         }),
                         None,
@@ -600,22 +593,13 @@ impl QDDDiagramDrawer {
                 let name: Option<String> = match (nodes.get(0), nodes.get(1)) {
                     (
                         Some(&PresenceLabel {
-                            original_label:
-                                ReachabilityLabel {
-                                    original_label: PointerLabel::Pointer(ref text),
-                                    reachable: _,
-                                },
+                            original_label: PointerLabel::Pointer(ref text),
                             original_id: _,
                         }),
                         None,
                     ) => Some(text.clone()),
                     _ => None,
                 };
-
-                let reachable = nodes.iter().any(|node| node.original_label.reachable);
-                if !reachable {
-                    color = color.mix(&Color(1.0, 1.0, 1.0), 0.7);
-                }
 
                 NodeData {
                     color,
@@ -692,14 +676,6 @@ impl QDDDiagramDrawer {
             ContainerConfig::new(
                 ContainerStyle::new().margin_top(TOP_MARGIN),
                 LabelConfig::new_styled(
-                    "Cofactor selection",
-                    LabelKind::Category,
-                    TextConfig::new(vec!["none".into()], "none".into()),
-                ),
-            ),
-            ContainerConfig::new(
-                ContainerStyle::new().margin_top(TOP_MARGIN),
-                LabelConfig::new_styled(
                     "Latex",
                     LabelKind::Category,
                     CompositeConfig::new((
@@ -735,7 +711,7 @@ impl QDDDiagramDrawer {
             config,
         };
 
-        let (expansion, terminal_config, cofactor_config, latex_config) = &*composite_config;
+        let (expansion, terminal_config, latex_config) = &*composite_config;
         let (_max_expand_layers, _max_expand_nodes, expand_all) = &****expansion;
         let (false_visibility, true_visibility, hide_shared_true) = &****terminal_config;
         let (latex_generate, latex_output, latex_header_output) = &****latex_config;
@@ -776,7 +752,7 @@ impl QDDDiagramDrawer {
             let mut adjuster = presence_adjuster.get();
             let terminals = adjuster.get_terminals();
             let mut terminals = terminals.iter().filter_map(|&node| {
-                match adjuster.get_node_label(node).original_label.original_label {
+                match adjuster.get_node_label(node).original_label {
                     PointerLabel::Node(NodeLabel {
                         pointers: _,
                         kind: NodeType::Terminal(t),
@@ -809,8 +785,6 @@ impl QDDDiagramDrawer {
                 true_visibility_copy.get(),
             );
         });
-
-        setup_reachability_adjuster(cofactor_config, reachability_adjuster);
 
         let _ = after_configuration_change(&composite_config, move || {
             drawer.get().layout(*time.get());
@@ -893,7 +867,7 @@ impl DiagramSectionDrawer for QDDDiagramDrawer {
     }
 
     fn split_edges(&mut self, nodes: &[NodeID], fully: bool) {
-        let (expansion, _terminal_config, _cofactor_config, _latex_config) = &****self.config;
+        let (expansion, _terminal_config, _latex_config) = &****self.config;
         let (max_expand_layers, max_expand_nodes, _expand_all) = &****expansion;
         self.group_manager.get().split_edges(
             nodes,
@@ -932,57 +906,4 @@ impl DiagramSectionDrawer for QDDDiagramDrawer {
     fn get_configuration(&self) -> AbstractConfigurationObject {
         self.config.get_abstract()
     }
-}
-
-fn setup_reachability_adjuster(
-    cofactor_input: &ContainerConfig<LabelConfig<TextConfig>>,
-    cofactor_adjuster: CofactorAdjuster,
-) {
-    let cofactor_input_copy = cofactor_input.clone();
-    let _ = on_configuration_change(&*cofactor_input, move || {
-        let input = cofactor_input_copy.get();
-
-        let expr = input
-            .rsplit_once(':')
-            .map(|(_, rhs)| rhs)
-            .unwrap_or(input.as_str());
-
-        let named_cofactors = expr
-            .replace("&amp;", "&")
-            .split(|c: char| c == ',' || c == '&')
-            .filter_map(|part| {
-                let part = part.trim();
-                if part.is_empty() {
-                    return None;
-                }
-
-                if let Some(var) = part.strip_prefix('!') {
-                    Some((var.trim().to_string(), false))
-                } else {
-                    Some((part.to_string(), true))
-                }
-            })
-            .collect_vec();
-
-        let cofactor_adjuster_inner = cofactor_adjuster.get();
-        let known_levels = cofactor_adjuster_inner.get_known_levels();
-        drop(cofactor_adjuster_inner);
-        let level_names = known_levels
-            .into_iter()
-            .map(|level| (cofactor_adjuster.get_level_label(level), level))
-            .collect::<HashMap<_, _>>();
-
-        let level_cofactors = named_cofactors
-            .into_iter()
-            .filter_map(|(name, cofactor)| {
-                level_names
-                    .get(&name)
-                    .map(|level| (*level, EdgeType::new((), if cofactor { 1 } else { 0 })))
-            })
-            .collect_vec();
-
-        cofactor_adjuster
-            .get()
-            .set_remove_level_edges(level_cofactors.into_iter());
-    });
 }

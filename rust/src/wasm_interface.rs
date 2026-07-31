@@ -73,6 +73,9 @@ impl DiagramSectionDrawerBox {
     pub fn set_transform(&mut self, width: u32, height: u32, x: f32, y: f32, scale: f32) -> () {
         self.0.set_transform(width, height, x, y, scale);
     }
+    pub fn get_bounding_box(&self) -> BoundingBox {
+        self.0.get_bounding_box()
+    }
     pub fn set_step(&mut self, step: i32) -> Option<StepData> {
         self.0.set_step(step)
     }
@@ -127,6 +130,14 @@ impl DiagramSectionDrawerBox {
     pub fn get_configuration(&self) -> AbstractConfigurationObject {
         self.0.get_configuration()
     }
+}
+
+#[wasm_bindgen(getter_with_clone, inspectable)]
+pub struct BoundingBox {
+    pub x_min: f32,
+    pub y_min: f32,
+    pub x_max: f32,
+    pub y_max: f32,
 }
 
 #[wasm_bindgen(getter_with_clone, inspectable)]

@@ -7,14 +7,19 @@
 export function transition(
     perform: (per: number) => void,
     durationMS: number
-): {cancel: () => void} {
+): ITransition {
     let start = Date.now();
     const intervalID = setInterval(() => {
         let delta = Date.now() - start;
         let per = Math.min(1.0, delta / durationMS);
         perform(per);
-        if (per >= 1) stop();
+        if (per >= 1) {
+            out.finished = true;
+            stop();
+        }
     }, 0);
     const stop = () => clearInterval(intervalID);
-    return {cancel: stop};
+    const out = {cancel: stop, finished: false};
+    return out;
 }
+export type ITransition = {cancel: () => void; finished: boolean};

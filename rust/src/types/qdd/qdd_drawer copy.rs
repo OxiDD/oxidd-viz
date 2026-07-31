@@ -129,7 +129,8 @@ use super::super::util::group_manager::GroupManager;
 use super::super::util::storage::state_storage::Serializable;
 use super::super::util::storage::state_storage::StateStorage;
 
-// The QDD diagram stripped down to increase performance
+// The drawers for QDD and BDD decision diagrams
+// Note that we should eventually add reusable helper structure to reduce the perceived complexity of the entries to different diagram visualization implementations
 pub struct QDDDiagram<MR: ManagerRef>
 where
     for<'id> <<MR as oxidd::ManagerRef>::Manager<'id> as Manager>::InnerNode: HasLevel,
@@ -146,7 +147,7 @@ impl QDDDiagram<DummyBDDManagerRef> {
 impl Diagram for QDDDiagram<DummyBDDManagerRef> {
     fn create_section_from_dddmp(&mut self, dddmp: String) -> Option<Box<dyn DiagramSection>> {
         let (roots, levels, is_bdd) = DummyBDDFunction::from_dddmp(&mut self.manager_ref, &dddmp);
-        Some(Box::new(BDDMinDiagramSection::new(roots, is_bdd, levels)))
+        Some(Box::new(QDDDiagramSection::new(roots, is_bdd, levels)))
     }
     // Other == Buddy
     fn create_section_from_other(
@@ -156,7 +157,7 @@ impl Diagram for QDDDiagram<DummyBDDManagerRef> {
     ) -> Option<Box<dyn DiagramSection>> {
         let (roots, levels, is_bdd) =
             DummyBDDFunction::from_buddy(&mut self.manager_ref, &data, vars.as_deref());
-        Some(Box::new(BDDMinDiagramSection::new(roots, is_bdd, levels)))
+        Some(Box::new(QDDDiagramSection::new(roots, is_bdd, levels)))
     }
     fn create_section_from_ids(
         &self,
@@ -172,11 +173,11 @@ impl Diagram for QDDDiagram<DummyBDDManagerRef> {
             })
             .collect_vec();
         let is_bdd = sources.iter().all(|&(_, section)| section.get_meta() == 1);
-        Some(Box::new(BDDMinDiagramSection::new(roots, is_bdd, levels)))
+        Some(Box::new(QDDDiagramSection::new(roots, is_bdd, levels)))
     }
 }
 
-pub struct BDDMinDiagramSection<F: Function>
+pub struct QDDDiagramSection<F: Function>
 where
     for<'id> <<F as oxidd::Function>::Manager<'id> as Manager>::InnerNode: HasLevel,
 {
@@ -186,12 +187,12 @@ where
     is_bdd: bool,
 }
 
-impl<F: Function> BDDMinDiagramSection<F>
+impl<F: Function> QDDDiagramSection<F>
 where
     for<'id> <<F as oxidd::Function>::Manager<'id> as Manager>::InnerNode: HasLevel,
 {
     fn new(roots: Vec<(F, Vec<String>)>, is_bdd: bool, levels: Vec<String>) -> Self {
-        let s = BDDMinDiagramSection {
+        let s = QDDDiagramSection {
             labels: roots
                 .iter()
                 .map(|(f, names)| {
@@ -275,7 +276,7 @@ impl QDDColors {
     };
 }
 
-impl DiagramSection for BDDMinDiagramSection<DummyBDDFunction> {
+impl DiagramSection for QDDDiagramSection<DummyBDDFunction> {
     fn get_level_labels(&self) -> Vec<String> {
         self.levels.clone()
     }
@@ -382,9 +383,15 @@ type GroupedGraph =
     GroupPresenceAdjuster<GroupLabelAdjuster<NodeData, LayerData, GroupManager<Graph>>>;
 type Graph = RCGraph<TerminalLevelAdjuster<PresenceAdjuster>>;
 type PresenceAdjuster = RCGraph<NodePresenceAdjuster<CofactorAdjuster>>;
-
-type CofactorAdjuster =
-    RCGraph<ReachabilityAdjuster<PointerNodeAdjuster<TerminalLevelAdjuster<BaseGraph>>>>;
+type CofactorAdjuster = RCGraph<
+    ReachabilityAdjuster<
+        RCGraph<
+            EdgeToAdjuster<
+                RCGraph<ChildEdgeAdjuster<PointerNodeAdjuster<TerminalLevelAdjuster<BaseGraph>>>>,
+            >,
+        >,
+    >,
+>;
 type BaseGraph = OxiddGraphStructure<(), DummyBDDFunction, String>;
 type Layout = TransitionLayout<ToggleLayout<Layout1, ToggleLayoutUnit<Layout2>>>;
 type Layout1 = LayeredLayout<
@@ -418,6 +425,14 @@ pub struct QDDDiagramDrawer {
         LocationConfig<
             PanelConfig<
                 CompositeConfig<(
+                    ContainerConfig<
+                        CompositeConfig<(
+                            LabelConfig<ChoiceConfig<bool>>,
+                            LabelConfig<IntConfig>,
+                            ButtonConfig,
+                            LabelConfig<ChoiceConfig<usize>>,
+                        )>,
+                    >,
                     ContainerConfig<
                         LabelConfig<
                             CompositeConfig<(
@@ -549,7 +564,11 @@ impl QDDDiagramDrawer {
             true,
             "".to_string(),
         );
-        let reachability_adjuster = RCGraph::new(ReachabilityAdjuster::new(pointer_adjuster)); // Scrap
+        let child_edge_adjuster =
+            RCGraph::new(ChildEdgeAdjuster::new(pointer_adjuster, move_shared_edge));
+        let edge_to_adjuster = RCGraph::new(EdgeToAdjuster::new(child_edge_adjuster.clone()));
+        let reachability_adjuster =
+            RCGraph::new(ReachabilityAdjuster::new(edge_to_adjuster.clone()));
         let presence_adjuster: PresenceAdjuster =
             RCGraph::new(NodePresenceAdjuster::new(reachability_adjuster.clone()));
         let modified_graph: Graph =
@@ -611,7 +630,6 @@ impl QDDDiagramDrawer {
                     ) => Some(text.clone()),
                     _ => None,
                 };
-
                 let reachable = nodes.iter().any(|node| node.original_label.reachable);
                 if !reachable {
                     color = color.mix(&Color(1.0, 1.0, 1.0), 0.7);
@@ -638,6 +656,25 @@ impl QDDDiagramDrawer {
 
         const TOP_MARGIN: f32 = 40.0;
         let composite_config = CompositeConfig::new((
+            ContainerConfig::new(
+                // Only show these testing options for QDDs
+                ContainerStyle::new().hidden(is_bdd),
+                CompositeConfig::new((
+                    LabelConfig::new(
+                        "Move shared",
+                        ChoiceConfig::new([
+                            Choice::new(true, "enabled"),
+                            Choice::new(false, "disabled"),
+                        ]),
+                    ),
+                    LabelConfig::new("Seed", IntConfig::new_min_max(0, Some(0), None)),
+                    ButtonConfig::new_labeled("Change seed"),
+                    LabelConfig::new(
+                        "Layout",
+                        ChoiceConfig::new([Choice::new(0, "1"), Choice::new(1, "2")]),
+                    ),
+                )),
+            ),
             ContainerConfig::new(
                 ContainerStyle::new().margin_top(if is_bdd { 0.0 } else { TOP_MARGIN }),
                 LabelConfig::new_styled(
@@ -735,10 +772,44 @@ impl QDDDiagramDrawer {
             config,
         };
 
-        let (expansion, terminal_config, cofactor_config, latex_config) = &*composite_config;
+        let (qdd_config, expansion, terminal_config, cofactor_config, latex_config) =
+            &*composite_config;
+        let (move_shared, seed, change_seed, layout_config) = &***qdd_config;
         let (_max_expand_layers, _max_expand_nodes, expand_all) = &****expansion;
         let (false_visibility, true_visibility, hide_shared_true) = &****terminal_config;
         let (latex_generate, latex_output, latex_header_output) = &****latex_config;
+
+        let drawer = out.drawer.clone();
+        let layout_config_copy = layout_config.clone();
+        let _ = on_configuration_change(&*layout_config, move || {
+            drawer
+                .get()
+                .get_layout_rules()
+                .get_layout_rules()
+                .select_layout(layout_config_copy.get());
+        });
+
+        let drawer = out.drawer.clone();
+        let mut seed_copy = seed.clone();
+        change_seed.clone().add_press_listener(move || {
+            let new_seed = seed_copy.get() + 1;
+            seed_copy.set(new_seed).commit();
+        });
+
+        let seed_copy = seed.clone();
+        let _ = on_configuration_change(&*seed, move || {
+            let mut drawer = drawer.get();
+            let p = drawer.get_layout_rules().get_layout_rules();
+            p.get_layout_rules1()
+                .get_ordering()
+                .get_ordering1()
+                .set_seed(seed_copy.get() as usize);
+            p.get_layout_rules2()
+                .get_layout_rules()
+                .get_ordering()
+                .get_ordering1()
+                .set_seed(seed_copy.get() as usize);
+        });
 
         let drawer = out.drawer.clone();
         let mut latex_renderer = LatexRenderer::<Layout>::new();
@@ -812,6 +883,36 @@ impl QDDDiagramDrawer {
 
         setup_reachability_adjuster(cofactor_config, reachability_adjuster);
 
+        let hide_shared_true_copy = hide_shared_true.clone();
+        let _ = on_configuration_change(&*hide_shared_true, move || {
+            if hide_shared_true_copy.get() {
+                let hide_edges = edge_to_adjuster
+                    .get_terminals()
+                    .into_iter()
+                    .filter_map(|node| match edge_to_adjuster.get_node_label(node) {
+                        PointerLabel::Node(NodeLabel {
+                            pointers: _,
+                            kind: NodeType::Terminal(t),
+                        }) if t == "T" => Some((node, EdgeType::new((), 2))),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .into_iter();
+                edge_to_adjuster.get().set_remove_to_edges(hide_edges);
+            } else {
+                edge_to_adjuster
+                    .get()
+                    .set_remove_to_edges(HashSet::new().into_iter());
+            }
+        });
+
+        let move_shared_copy = move_shared.clone();
+        let _ = on_configuration_change(&*move_shared, move || {
+            child_edge_adjuster
+                .get()
+                .set_enabled(move_shared_copy.get());
+        });
+
         let _ = after_configuration_change(&composite_config, move || {
             drawer.get().layout(*time.get());
         });
@@ -820,7 +921,7 @@ impl QDDDiagramDrawer {
 
         // Perform initialization
         let start = js_sys::Date::now();
-        let max = 50000;
+        let max = 10000;
         if out.group_manager.read().get_nodes_of_group(from).len() < max {
             reveal_all(&out.group_manager, from, max);
         }
@@ -893,7 +994,8 @@ impl DiagramSectionDrawer for QDDDiagramDrawer {
     }
 
     fn split_edges(&mut self, nodes: &[NodeID], fully: bool) {
-        let (expansion, _terminal_config, _cofactor_config, _latex_config) = &****self.config;
+        let (_qdd_config, expansion, _terminal_config, _cofactor_config, _latex_config) =
+            &****self.config;
         let (max_expand_layers, max_expand_nodes, _expand_all) = &****expansion;
         self.group_manager.get().split_edges(
             nodes,
@@ -932,6 +1034,48 @@ impl DiagramSectionDrawer for QDDDiagramDrawer {
     fn get_configuration(&self) -> AbstractConfigurationObject {
         self.config.get_abstract()
     }
+}
+
+fn move_shared_edge<T: DrawTag + 'static>(
+    children: Vec<(EdgeType<T>, NodeID, PointerLabel<NodeLabel<String>>)>,
+) -> Option<Vec<(EdgeType<T>, NodeID)>> {
+    if children.len() != 3 {
+        return None;
+    }
+    let edges = children
+        .into_iter()
+        .map(|(edge, to, label)| {
+            if let PointerLabel::Node(NodeLabel {
+                pointers: _,
+                kind: NodeType::Terminal(t),
+            }) = label
+            {
+                (t.clone(), (edge, to))
+            } else {
+                ("inner".to_string(), (edge, to))
+            }
+        })
+        .collect::<HashMap<_, _>>();
+    let Some((to_true_edge, true_node)) = edges.get("T") else {
+        return None;
+    };
+    let Some((to_false_edge, false_node)) = edges.get("F") else {
+        return None;
+    };
+    let Some((to_inner_edge, rest_node)) = edges.get("inner") else {
+        return None;
+    };
+
+    if to_true_edge.index == 2 {
+        return None;
+    }
+
+    return Some(vec![
+        (to_true_edge.clone(), *rest_node),
+        (to_inner_edge.clone(), *true_node),
+        (to_false_edge.clone(), *false_node),
+    ]);
+    // return Some(vec![]);
 }
 
 fn setup_reachability_adjuster(

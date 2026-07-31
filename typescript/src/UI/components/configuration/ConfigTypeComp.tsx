@@ -20,6 +20,8 @@ import {FloatConfigComp} from "./FloatConfigComp";
 import {FloatConfig} from "../../../state/configuration/types/FloatConfig";
 import {ContainerConfig} from "../../../state/configuration/types/ContainerConfig";
 import {ContainerConfigComp} from "./ContainerConfigComp";
+import {TextConfigComp} from "./TextConfigComp";
+import {TextConfig} from "../../../state/configuration/types/TextConfig";
 
 export const ConfigTypeComp: FC<{value: IConfigObjectType}> = ({value}) => {
     if (value instanceof IntConfig) return <IntConfigComp value={value} />;
@@ -31,6 +33,7 @@ export const ConfigTypeComp: FC<{value: IConfigObjectType}> = ({value}) => {
     if (value instanceof ChoiceConfig) return <ChoiceConfigComp value={value} />;
     if (value instanceof ButtonConfig) return <ButtonConfigComp value={value} />;
     if (value instanceof TextOutputConfig) return <TextOutputConfigComp value={value} />;
+    if (value instanceof TextConfig) return <TextConfigComp value={value} />;
     if (value instanceof PanelConfig) return <PanelConfigComp value={value} />;
     if (value instanceof LocationConfig)
         return <LocationConfigComp value={value} ChildComp={ConfigTypeComp} />;

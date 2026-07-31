@@ -52,8 +52,11 @@ export const ManualDiagramCollection: FC<{
                 horizontal
                 tokens={{childrenGap: theme.spacing.m}}
                 style={{marginTop: theme.spacing.m}}>
-                <AddDiagramButton onClick={() => collection.addDiagram("QDD").commit()}>
+                <AddDiagramButton onClick={() => collection.addDiagram("BDD").commit()}>
                     Add local BDD
+                </AddDiagramButton>
+                <AddDiagramButton onClick={() => collection.addDiagram("QDD").commit()}>
+                    Add local advanced BDD
                 </AddDiagramButton>
                 <AddDiagramButton onClick={() => collection.addDiagram("MTBDD").commit()}>
                     Add local MTBDD

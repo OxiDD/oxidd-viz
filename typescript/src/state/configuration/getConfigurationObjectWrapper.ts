@@ -12,6 +12,7 @@ import {IOwnedAbstractConfig} from "./ConfigurationObject";
 import {LocationConfig} from "./types/LocationConfig";
 import {FloatConfig} from "./types/FloatConfig";
 import {ContainerConfig} from "./types/ContainerConfig";
+import {TextConfig} from "./types/TextConfig";
 
 /**
  * Creates the configuration object wrapper from the given abstract configuration object
@@ -36,6 +37,8 @@ export function getConfigurationObjectWrapper(
         return new ButtonConfig(ownedConfig);
     } else if (type == ConfigurationObjectType.TextOutput) {
         return new TextOutputConfig(ownedConfig);
+    } else if (type == ConfigurationObjectType.Text) {
+        return new TextConfig(ownedConfig);
     } else if (type == ConfigurationObjectType.Panel) {
         return new PanelConfig(ownedConfig);
     } else if (type === ConfigurationObjectType.Location) {

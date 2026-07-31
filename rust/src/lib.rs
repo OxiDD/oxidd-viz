@@ -26,6 +26,7 @@ use swash::{
 };
 
 use crate::{
+    types::bdd_min::bdd_min_drawer::BDDMinDiagram,
     util::dummy_bdd::{DummyBDDFunction, DummyBDDManager, DummyBDDManagerRef},
     wasm_interface::DiagramBox,
 };
@@ -35,6 +36,13 @@ pub fn create_qdd_diagram() -> Option<DiagramBox> // And some DD type param
 {
     set_panic_hook();
     Some(DiagramBox::new(Box::new(QDDDiagram::new())))
+}
+
+#[wasm_bindgen]
+pub fn create_bdd_min_diagram() -> Option<DiagramBox> // And some DD type param
+{
+    set_panic_hook();
+    Some(DiagramBox::new(Box::new(BDDMinDiagram::new())))
 }
 
 #[wasm_bindgen]

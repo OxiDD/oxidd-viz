@@ -1,13 +1,23 @@
-import {useCallback, useRef, useState} from "react";
-import {transition} from "../../../utils/transition";
-import {ITransformation} from "../../../state/diagrams/_types/IDiagramVisualizationSerialization";
+import {useCallback, useEffect, useRef, useState} from "react";
+import {ITransition, transition} from "../../../utils/transition";
 import {Field} from "../../../watchables/Field";
+import {ITransformation} from "../../../state/diagrams/_types/IDiagramVisualizationSerialization";
+import {Observer} from "../../../watchables/Observer";
 
 export function useTransformCallbacks(
     transform: Field<ITransformation>
 ): IInteractionHandlers {
     const scaleTarget = useRef(transform.get().scale);
-    const stopPrevScaleTransition = useRef(() => {});
+    const prevTransition = useRef<ITransition | null>(null);
+
+    useEffect(() => {
+        const observer = new Observer(transform).add(transform => {
+            if (prevTransition.current?.finished ?? true) {
+                scaleTarget.current = transform.scale;
+            }
+        });
+        return () => observer.destroy();
+    }, []);
     const getTargetPoint = (e: React.WheelEvent<HTMLElement>) => {
         const canvas = e.target as HTMLElement;
         const bound = canvas.getBoundingClientRect();
@@ -41,10 +51,10 @@ export function useTransformCallbacks(
             const endScale = (scaleTarget.current *= multiplier);
 
             e.stopPropagation();
-            stopPrevScaleTransition.current();
-            stopPrevScaleTransition.current = transition(per => {
+            prevTransition.current?.cancel();
+            prevTransition.current = transition(per => {
                 setScale((1 - per) * startScale + per * endScale, target).commit();
-            }, 100).cancel;
+            }, 100);
         }, []),
         onMouseDown: useCallback(e => {
             if (e.button == 0) return;

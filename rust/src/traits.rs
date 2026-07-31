@@ -1,7 +1,8 @@
 use crate::{
     configuration::configuration_object::AbstractConfigurationObject,
     types::util::graph_structure::graph_manipulators::node_presence_adjuster::PresenceRemainder,
-    util::rectangle::Rectangle, wasm_interface::NodeID,
+    util::rectangle::Rectangle,
+    wasm_interface::{BoundingBox, NodeID},
 };
 
 use super::wasm_interface::{NodeGroupID, StepData, TargetID};
@@ -31,6 +32,7 @@ pub trait DiagramSectionDrawer {
     fn render(&mut self, time: u32) -> ();
     fn layout(&mut self, time: u32) -> ();
     fn set_transform(&mut self, width: u32, height: u32, x: f32, y: f32, scale: f32) -> ();
+    fn get_bounding_box(&self) -> BoundingBox;
     fn set_step(&mut self, step: i32) -> Option<StepData>;
 
     /* Grouping */

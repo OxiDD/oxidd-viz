@@ -775,6 +775,9 @@ impl DiagramSectionDrawer for MTBDDDiagramDrawer {
     fn set_transform(&mut self, width: u32, height: u32, x: f32, y: f32, scale: f32) -> () {
         self.drawer.get().set_transform(width, height, x, y, scale);
     }
+    fn get_bounding_box(&self) -> crate::wasm_interface::BoundingBox {
+        self.drawer.get().get_bounding_box()
+    }
 
     fn set_step(&mut self, step: i32) -> Option<StepData> {
         todo!()

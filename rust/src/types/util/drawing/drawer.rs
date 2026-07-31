@@ -28,7 +28,7 @@ use crate::{
         transformation::Transformation,
         transition::Interpolatable,
     },
-    wasm_interface::NodeGroupID,
+    wasm_interface::{BoundingBox, NodeGroupID},
 };
 
 use super::{
@@ -86,6 +86,41 @@ where
 
     pub fn get_current_layout(&self) -> DiagramLayout<L::T, L::NS, L::LS> {
         self.layout.clone()
+    }
+
+    pub fn get_bounding_box(&self) -> crate::wasm_interface::BoundingBox {
+        let mut x_min: Option<f32> = None;
+        let mut x_max: Option<f32> = None;
+        let mut y_min: Option<f32> = None;
+        let mut y_max: Option<f32> = None;
+        for (_, group_data) in &self.layout.groups {
+            let width = group_data.size.new.x;
+            let height = group_data.size.new.y;
+            let group_x_min = group_data.position.new.x;
+            let group_y_min = group_data.position.new.y;
+            let group_x_max = group_x_min + width;
+            let group_y_max = group_y_min + height;
+
+            x_min = x_min
+                .map(|min_x| min_x.min(group_x_min))
+                .or(Some(group_x_min));
+            y_min = y_min
+                .map(|min_y| min_y.min(group_y_min))
+                .or(Some(group_y_min));
+            x_max = x_max
+                .map(|max_x| max_x.max(group_x_max))
+                .or(Some(group_x_max));
+            y_max = y_max
+                .map(|max_y| max_y.max(group_y_max))
+                .or(Some(group_y_max));
+        }
+
+        BoundingBox {
+            x_min: x_min.unwrap_or_default(),
+            y_min: y_min.unwrap_or_default(),
+            x_max: x_max.unwrap_or_default(),
+            y_max: y_max.unwrap_or_default(),
+        }
     }
 
     pub fn layout(&mut self, time: u32) {

@@ -12,5 +12,6 @@ pub enum ConfigurationObjectType {
     Panel,
     Location,
     TextOutput,
+    Text,
     Container,
 }

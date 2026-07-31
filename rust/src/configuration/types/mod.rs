@@ -7,4 +7,5 @@ pub mod int_config;
 pub mod label_config;
 pub mod location_config;
 pub mod panel_config;
+pub mod text_config;
 pub mod text_output_config;

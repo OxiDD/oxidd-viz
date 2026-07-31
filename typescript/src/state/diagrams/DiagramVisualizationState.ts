@@ -41,7 +41,7 @@ export class DiagramVisualizationState extends ViewState {
     protected readonly drawer: DiagramSectionDrawerBox;
 
     /** The start date */
-    protected start = Date.now();
+    protected start = Date.now() - 2000; // - 2000 to skip initial transition
 
     /** The local transformation */
     public readonly transform = new Field({offset: {x: 0, y: 0}, scale: 15});
@@ -88,7 +88,6 @@ export class DiagramVisualizationState extends ViewState {
         this.canvas = canvas;
         this.sharedState = sharedState;
 
-        this.drawer.layout(Date.now() - this.start);
         this.selectionObserver = new Observer(
             new Derived(watch => ({
                 selected: watch(sharedState.selection),
@@ -130,6 +129,27 @@ export class DiagramVisualizationState extends ViewState {
         this.drawer.layout(layoutStart - this.start);
         const layoutTime = Date.now() - layoutStart;
         this.start += layoutTime;
+    }
+
+    /**
+     * Centers the visualization such that it fits exactly in the screen
+     * @param maxScale The maximum scale to apply to fill the screen
+     * @return The mutator to commit the event
+     */
+    public fitVisualization(maxScale: number = 20): IMutator<unknown> {
+        const bb = this.drawer.get_bounding_box();
+        const size = this.size.get();
+        const height = bb.y_max - bb.y_min;
+        const width = bb.x_max - bb.x_min;
+        const scale = Math.min(size.y / height, size.x / width, maxScale);
+        const center = {
+            x: (bb.x_min + bb.x_max) / 2,
+            y: (bb.y_min + bb.y_max) / 2,
+        };
+        return this.transform.set({
+            scale,
+            offset: {x: center.x, y: -center.y},
+        });
     }
 
     /**

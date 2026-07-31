@@ -17,39 +17,51 @@ export const DiagramVisualization: FC<{visualization: DiagramVisualizationState}
     const theme = useTheme();
     const watch = useWatch();
     const toolbar = useToolbar();
-    const ref = useRef<HTMLDivElement>(null);
-    useLayoutEffect(() => {
-        const el = ref.current;
-        if (el) {
-            const setSize = () => {
-                const width = el.clientWidth;
-                const height = el.clientHeight;
-                if (width <= 0 || height <= 0) return;
-                visualization.size.set({x: width, y: height}).commit();
-            };
-            setSize();
-            const resizeObserver = new ResizeObserver(() => setTimeout(setSize)); // timeout used to prevent UI updates resulting from UI size change
-            resizeObserver.observe(el);
-            return () => resizeObserver.disconnect();
-        }
-    }, []);
-    useEffect(() => {
-        const el = ref.current;
-        if (el) {
-            el.insertBefore(visualization.canvas, el.firstChild);
 
-            let running = true;
-            function render() {
-                if (!running) return;
-                visualization.render();
-                requestAnimationFrame(render);
+    const dispose_ref = useRef(() => {});
+    useEffect(() => () => dispose_ref.current(), []);
+
+    // Use a ref callback for immediate rendering without flicker
+    const el_ref = (el: HTMLDivElement) => {
+        if (!el) return;
+        const setSize = (center = false) => {
+            const width = el.clientWidth;
+            const height = el.clientHeight;
+            if (width <= 0 || height <= 0) return;
+
+            const size = {x: width, y: height};
+            const pos = visualization.transform.get().offset;
+            // Only center on the first render, we use the visualization being centered as an over-approximation of "first-render"
+            if (center && pos.x == 0 && pos.y == 0) {
+                visualization.size
+                    .set(size)
+                    .chain(() => visualization.fitVisualization())
+                    .commit();
+            } else {
+                visualization.size.set(size).commit();
             }
-            render();
-            return () => {
-                running = false;
-            };
-        }
-    }, []);
+        };
+        let running = true;
+        const render = () => {
+            if (!running) return;
+            visualization.render();
+            requestAnimationFrame(render);
+        };
+
+        el.insertBefore(visualization.canvas, el.firstChild);
+
+        const resizeObserver = new ResizeObserver(() => setTimeout(setSize)); // timeout used to prevent UI updates resulting from UI size change
+        resizeObserver.observe(el);
+
+        setSize(true);
+        render();
+
+        dispose_ref.current();
+        dispose_ref.current = () => {
+            running = false;
+            resizeObserver.disconnect();
+        };
+    };
 
     // Prevent dragging the window when clicking a button
     const preventDrag = useCallback((e: React.MouseEvent) => {
@@ -59,9 +71,9 @@ export const DiagramVisualization: FC<{visualization: DiagramVisualizationState}
     return (
         <ViewContainer
             onContextMenu={e => e.preventDefault()}
-            ref={ref}
+            ref={el_ref}
             {...moveListeners}
-            css={{padding: 0, overflow: "hidden", backgroundColor: "white"}}>
+            css={{padding: 0, overflow: "hidden"}}>
             <BoxSelection
                 onStart={m => m.buttons == 1}
                 onHighlight={(rect, e) => {

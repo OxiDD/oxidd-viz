@@ -68,7 +68,7 @@ export class HttpDiagramCollectionState extends DiagramCollectionBaseState {
                     awaitingResponse = false;
                 });
             }
-        }, 1000) as any;
+        }, 200) as any;
     }
 
     /** @override */

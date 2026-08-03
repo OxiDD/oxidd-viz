@@ -513,7 +513,7 @@ impl QDDDiagramDrawer {
             // SugiyamaOrdering::new(2, 2),
             SequenceOrdering::new(
                 PseudoRandomLayerOrdering::new(2, 0),
-                SequenceOrdering::new(EdgeLayerOrdering, SugiyamaOrdering::new(2, 2)),
+                SequenceOrdering::new(EdgeLayerOrdering, SugiyamaOrdering::new(1, 1)),
             ),
             // AverageGroupAlignment,
             OrderingGroupAlignment,

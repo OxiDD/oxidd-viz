@@ -5,6 +5,7 @@
     "private": true,
     "scripts": {
         "start": "webpack serve --env dev",
+        "serve": "serve -s build",
         "build": "webpack --env prod",
         "test": "node --expose-gc ./node_modules/jest/bin/jest.js -i --verbose --config=\"jest.config.js\"",
         "test-watch": "node --expose-gc ./node_modules/jest/bin/jest.js --watch -i --verbose --config=\"jest.config.js\"",
@@ -47,6 +48,7 @@
         "typescript": "^5.4.5",
         "webpack": "^5.91.0",
         "webpack-cli": "^5.1.4",
-        "webpack-dev-server": "^5.0.4"
+        "webpack-dev-server": "^5.0.4",
+        "serve": "14.2.6"
     }
 }

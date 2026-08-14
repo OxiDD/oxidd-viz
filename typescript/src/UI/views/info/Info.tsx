@@ -50,7 +50,7 @@ export const Info: FC<{app: AppState}> = ({app}) => {
                 To add a local diagram, simply open the{" "}
                 {link("diagrams panel", app.diagrams)} and click "Add local BDD" or "Add
                 local MTBDD". This should add a shared diagram, which you can now add
-                content into using either "Load from dddump" or 'Load from Buddy'. Here
+                content into using either "Load from DDDMP" or 'Load from BuDDy'. Here
                 you can either select a file or supply text contents, and load the
                 diagrams. After the diagrams finished loading, a new section should appear
                 in the diagram. Clicking this section opens the visualization. Any diagram

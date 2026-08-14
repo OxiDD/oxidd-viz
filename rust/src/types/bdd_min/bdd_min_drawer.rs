@@ -676,7 +676,7 @@ impl QDDDiagramDrawer {
             ContainerConfig::new(
                 ContainerStyle::new().margin_top(TOP_MARGIN),
                 LabelConfig::new_styled(
-                    "Latex",
+                    "LaTeX",
                     LabelKind::Category,
                     CompositeConfig::new((
                         ButtonConfig::new_labeled("Generate"),

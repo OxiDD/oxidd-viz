@@ -96,7 +96,7 @@ where
         for (_, group_data) in &self.layout.groups {
             let width = group_data.size.new.x;
             let height = group_data.size.new.y;
-            let group_x_min = group_data.position.new.x;
+            let group_x_min = group_data.position.new.x - 0.5 * width;
             let group_y_min = group_data.position.new.y;
             let group_x_max = group_x_min + width;
             let group_y_max = group_y_min + height;

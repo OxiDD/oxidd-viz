@@ -139,8 +139,8 @@ export class DiagramVisualizationState extends ViewState {
     public fitVisualization(maxScale: number = 20): IMutator<unknown> {
         const bb = this.drawer.get_bounding_box();
         const size = this.size.get();
-        const height = bb.y_max - bb.y_min;
-        const width = bb.x_max - bb.x_min;
+        const height = bb.y_max - bb.y_min + 1;
+        const width = bb.x_max - bb.x_min + 2; // Extra padding on x-axis compared to y
         const scale = Math.min(size.y / height, size.x / width, maxScale);
         const center = {
             x: (bb.x_min + bb.x_max) / 2,
@@ -148,7 +148,7 @@ export class DiagramVisualizationState extends ViewState {
         };
         return this.transform.set({
             scale,
-            offset: {x: center.x, y: -center.y},
+            offset: {x: -center.x, y: -center.y},
         });
     }
 

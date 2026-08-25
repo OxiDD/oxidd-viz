@@ -256,11 +256,11 @@ impl QDDColors {
     };
 
     const LIGHT: QDDColors = QDDColors {
-        edge_true: Color(0.2, 1.0, 0.2),
-        edge_false: Color(1.0, 0.2, 0.2),
+        edge_true: Color(0.427, 0.776, 0.271),
+        edge_false: Color(0.91, 0.439, 0.384),
         edge_both: Color(0.6, 0.6, 0.6),
-        node_true: Color(0.2, 1.0, 0.2),
-        node_false: Color(1.0, 0.2, 0.2),
+        node_true: Color(0.427, 0.776, 0.271),
+        node_false: Color(0.91, 0.439, 0.384),
         node_group: Color(0.45, 0.45, 0.45),
         node_default: Color(0.1, 0.1, 0.1),
         node_text: Color(0.0, 0.0, 0.0),

@@ -127,7 +127,7 @@ export const DiagramSummary: FC<{diagram: DiagramState; onDelete: () => void}> =
                             </>
                         }
                         disabled={!canCreateFromFile}>
-                        Load from dddump
+                        Load from DDDMP
                     </AddSectionButton>
 
                     {diagram.type == "MTBDD" ? undefined : (
@@ -145,7 +145,7 @@ export const DiagramSummary: FC<{diagram: DiagramState; onDelete: () => void}> =
                                 </>
                             }
                             disabled={!canCreateFromFile}>
-                            Load from Buddy
+                            Load from BuDDy
                         </AddSectionButton>
                     )}
                     <AddSectionButton

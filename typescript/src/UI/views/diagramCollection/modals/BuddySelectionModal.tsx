@@ -76,7 +76,7 @@ export const BuddySelectionModal: FC<{
     }, [visible]);
 
     return (
-        <StyledModal title="Enter Buddy file" isOpen={visible} onDismiss={onCancel}>
+        <StyledModal title="Enter BuDDy file" isOpen={visible} onDismiss={onCancel}>
             <div className={css({minWidth: 500})}>
                 <InputOption
                     name="Text contents"

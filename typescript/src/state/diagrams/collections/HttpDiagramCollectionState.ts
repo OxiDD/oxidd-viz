@@ -109,9 +109,10 @@ export class HttpDiagramCollectionState extends DiagramCollectionBaseState {
         chain(push => {
             try {
                 for (const {name, type, diagram} of diagrams) {
+                    const baseName = getBaseDiagramName(name);
                     const oldDiagramState = this.diagrams
                         .get()
-                        .find(d => d.sourceName.get() == name);
+                        .find(d => getBaseDiagramName(d.sourceName.get()) == baseName);
                     if (oldDiagramState && this.replaceOld.get()) {
                         push(this.removeDiagram(oldDiagramState));
                     }
@@ -156,6 +157,11 @@ export class HttpDiagramCollectionState extends DiagramCollectionBaseState {
             push(this.autoOpenTarget.deserialize(data.target));
         });
     }
+}
+
+/** Retrieves the name of the diagram without modifiers.  e.g. "BDD (test) becomes "BDD" */
+function getBaseDiagramName(name: string): string {
+    return name.replace(/\([^()]*\)/, "").trim();
 }
 
 /**

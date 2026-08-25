@@ -24,15 +24,16 @@ export const DiagramVisualization: FC<{visualization: DiagramVisualizationState}
     // Use a ref callback for immediate rendering without flicker
     const el_ref = (el: HTMLDivElement) => {
         if (!el) return;
-        const setSize = (center = false) => {
+        let firstSuccessfulSizing = true;
+        const setSize = () => {
             const width = el.clientWidth;
             const height = el.clientHeight;
             if (width <= 0 || height <= 0) return;
 
             const size = {x: width, y: height};
             const pos = visualization.transform.get().offset;
-            // Only center on the first render, we use the visualization being centered as an over-approximation of "first-render"
-            if (center && pos.x == 0 && pos.y == 0) {
+            // Only center on the first render, we use the visualization being centered + firstSuccessFulSizing as an over-approximation of "first-render"
+            if (firstSuccessfulSizing && pos.x == 0 && pos.y == 0) {
                 visualization.size
                     .set(size)
                     .chain(() => visualization.fitVisualization())
@@ -40,6 +41,7 @@ export const DiagramVisualization: FC<{visualization: DiagramVisualizationState}
             } else {
                 visualization.size.set(size).commit();
             }
+            firstSuccessfulSizing = false;
         };
         let running = true;
         const render = () => {
@@ -53,7 +55,7 @@ export const DiagramVisualization: FC<{visualization: DiagramVisualizationState}
         const resizeObserver = new ResizeObserver(() => setTimeout(setSize)); // timeout used to prevent UI updates resulting from UI size change
         resizeObserver.observe(el);
 
-        setSize(true);
+        setSize();
         render();
 
         dispose_ref.current();
